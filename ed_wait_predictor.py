@@ -1,38 +1,33 @@
-
 import streamlit as st
 import pandas as pd
+import numpy as np
 import joblib
 
-st.set_page_config(page_title="ED Wait Time Predictor", layout="centered")
+# Load model
+model = joblib.load("model_rf.pkl")
 
-st.title("Smart Triage ED Wait Time Predictor")
+st.set_page_config(page_title="Smart Triage ED Wait Time Predictor")
+st.title("🧠 Smart Triage ED Wait Time Predictor")
 
-st.markdown("Enter triage vitals to estimate wait time (in minutes):")
+st.markdown("Enter vitals collected during triage to simulate wait time prediction. This model is based on real data from MIMIC-IV-ED.")
 
-temperature = st.number_input("Temperature (°F)", 90, 110, step=1)
-heartrate = st.number_input("Heart Rate (bpm)", 30, 200, step=1)
-resprate = st.number_input("Respiratory Rate", 5, 40, step=1)
-o2sat = st.number_input("Oxygen Saturation (%)", 70, 100, step=1)
-sbp = st.number_input("Systolic Blood Pressure", 80, 200, step=1)
-dbp = st.number_input("Diastolic Blood Pressure", 40, 120, step=1)
-pain = st.number_input("Pain (0–10)", 0, 10, step=1)
-china_ai_model = st.selectbox("Were vitals taken within 10 minutes?", ["No", "Yes"])
-china_ai_model = 1 if china_ai_model == "Yes" else 0
-
-user_data = pd.DataFrame([{
-    "temperature_x": temperature,
-    "heartrate_x": heartrate,
-    "resprate_x": resprate,
-    "o2sat_x": o2sat,
-    "sbp_x": sbp,
-    "dbp_x": dbp,
-    "pain_x": pain,
-    "china_ai_model": china_ai_model
-}])
+# Input form
+temp = st.number_input("Temperature (°F)", value=98.6)
+hr = st.number_input("Heart Rate (bpm)", value=80)
+rr = st.number_input("Respiratory Rate", value=18)
+o2 = st.number_input("Oxygen Saturation (%)", value=97)
+sbp = st.number_input("Systolic BP", value=120)
+dbp = st.number_input("Diastolic BP", value=80)
+pain = st.slider("Pain Level (0–10)", 0, 10, 5)
+fast = st.radio("Were vitals taken within 10 minutes?", ["No", "Yes"])
+china_ai_model = 1 if fast == "Yes" else 0
 
 if st.button("Predict Wait Time"):
-    st.warning("This is a demo. Prediction model not connected.")
-    # Example: wait_time = model.predict(user_data)
-    # st.success(f"Estimated Wait Time: {wait_time[0]:.2f} minutes")
+    input_df = pd.DataFrame([[temp, hr, rr, o2, sbp, dbp, pain, china_ai_model]],
+                            columns=['temperature_x', 'heartrate_x', 'resprate_x', 'o2sat_x',
+                                     'sbp_x', 'dbp_x', 'pain_x', 'china_ai_model'])
+    prediction = model.predict(input_df)[0]
+    st.success(f"🕒 Predicted ED Wait Time: {int(prediction)} minutes")
 
-st.markdown("**Note:** This is a simulation based on the MIMIC-IV-ED dataset.")
+    if china_ai_model == 1:
+        st.info("✅ Fast-track triage applied (AI-style). Wait time reduced.")
